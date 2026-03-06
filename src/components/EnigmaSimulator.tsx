@@ -32,6 +32,7 @@ export default function EnigmaSimulator() {
   const [outputLog, setOutputLog] = useState<string>('');
   const [activeLamp, setActiveLamp] = useState<string | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   
   // Secure Comm State
@@ -197,14 +198,23 @@ export default function EnigmaSimulator() {
         </div>
         <div className="flex gap-2">
           <button 
+            onClick={() => setIsHelpOpen(true)}
+            className="p-2 rounded-full hover:bg-white/5 transition-colors text-gray-400 hover:text-gray-200"
+            title="Panduan Penggunaan"
+          >
+            <HelpCircle size={20} />
+          </button>
+          <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
             className="p-2 rounded-full hover:bg-white/5 transition-colors text-gray-400 hover:text-gray-200"
+            title={soundEnabled ? "Mute Sound" : "Enable Sound"}
           >
             {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
           </button>
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 rounded-full hover:bg-white/5 transition-colors text-gray-400 hover:text-gray-200"
+            title="Settings"
           >
             <Settings size={20} />
           </button>
@@ -384,18 +394,202 @@ export default function EnigmaSimulator() {
       {/* Settings Modal */}
       <AnimatePresence>
         {isSettingsOpen && (
-          <SettingsModal 
-            config={config} 
-            onClose={() => setIsSettingsOpen(false)} 
-            onUpdateRotor={updateRotor}
-            onUpdatePlugboard={updatePlugboard}
-            onUpdateReflector={(ref) => {
-               const newConfig = { ...config, reflector: ref };
-               setConfig(newConfig);
-               machineRef.current.setConfig(newConfig);
-            }}
-            onReset={resetMachine}
-          />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsSettingsOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#25262b] w-full max-w-2xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
+                  <Settings className="text-amber-600" /> Machine Configuration
+                </h2>
+                <button onClick={() => setIsSettingsOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto space-y-8">
+                {/* Rotor Selection */}
+                <section>
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Rotor Selection</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    {config.rotors.map((rotor, index) => (
+                      <div key={index} className="space-y-2">
+                        <label className="text-xs text-gray-400">Slot {index + 1}</label>
+                        <select 
+                          value={rotor.type}
+                          onChange={(e) => updateRotor(index, { type: e.target.value })}
+                          className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm focus:border-amber-600 outline-none"
+                        >
+                          {Object.keys(ROTORS).map(type => (
+                            <option key={type} value={type}>Rotor {type}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Reflector Selection */}
+                <section>
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Reflector</h3>
+                  <div className="flex gap-4">
+                    {Object.keys(REFLECTORS).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          const newConfig = { ...config, reflector: type };
+                          setConfig(newConfig);
+                          setInitialConfig(newConfig);
+                          machineRef.current.setConfig(newConfig);
+                        }}
+                        className={cn(
+                          "px-4 py-2 rounded-lg text-sm font-medium border transition-all",
+                          config.reflector === type 
+                            ? "bg-amber-600 border-amber-500 text-white" 
+                            : "bg-black/20 border-white/10 text-gray-400 hover:bg-white/5"
+                        )}
+                      >
+                        Reflector {type}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Plugboard */}
+                <section>
+                  <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">Steckerbrett (Plugboard)</h3>
+                  <PlugboardEditor config={config} onConnect={updatePlugboard} />
+                </section>
+              </div>
+              
+              <div className="p-6 border-t border-white/10 bg-black/20 flex justify-between items-center">
+                <button 
+                  onClick={resetMachine}
+                  className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                >
+                  <RefreshCw size={14} /> Reset to Default
+                </button>
+                <button 
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="bg-white text-black px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {isHelpOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setIsHelpOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#25262b] w-full max-w-2xl rounded-2xl shadow-2xl border border-white/10 overflow-hidden flex flex-col max-h-[90vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
+                  <HelpCircle className="text-amber-600" /> Panduan Penggunaan
+                </h2>
+                <button onClick={() => setIsHelpOpen(false)} className="text-gray-400 hover:text-white">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto space-y-6 text-gray-300 text-sm leading-relaxed">
+                <section>
+                  <h3 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                    <span className="bg-amber-900/30 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                    Dasar Penggunaan
+                  </h3>
+                  <ul className="list-disc pl-9 space-y-1 text-gray-400">
+                    <li>Ketik huruf menggunakan keyboard fisik Anda atau klik tombol pada layar.</li>
+                    <li>Lampu yang menyala menunjukkan hasil enkripsi dari huruf yang ditekan.</li>
+                    <li>Setiap ketikan akan memutar rotor satu langkah, mengubah pola enkripsi untuk huruf berikutnya.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                    <span className="bg-amber-900/30 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                    Pengaturan Mesin (Settings)
+                  </h3>
+                  <ul className="list-disc pl-9 space-y-1 text-gray-400">
+                    <li>Klik ikon <Settings size={14} className="inline" /> di pojok kanan atas.</li>
+                    <li><strong>Rotors:</strong> Atur jenis rotor (I-VIII) dan posisi awal ring.</li>
+                    <li><strong>Reflector:</strong> Pilih jenis reflektor (B atau C) yang memantulkan sinyal kembali.</li>
+                    <li><strong>Plugboard:</strong> Klik satu huruf lalu huruf lain untuk menghubungkan kabel. Ini menukar huruf sebelum masuk ke rotor.</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                    <span className="bg-amber-900/30 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                    Komunikasi Rahasia
+                  </h3>
+                  <div className="pl-9 space-y-4">
+                    <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                      <strong className="text-gray-200 block mb-1">Mengirim Pesan:</strong>
+                      <ol className="list-decimal pl-4 space-y-1 text-gray-400">
+                        <li>Atur mesin sesuai keinginan (Rotor, Plugboard).</li>
+                        <li>Salin <strong>"Current Settings Key"</strong> dan kirim ke teman Anda.</li>
+                        <li>Ketik pesan rahasia di kolom <strong>"Message Translator"</strong> (Input).</li>
+                        <li>Klik tombol panah <ArrowRight size={12} className="inline" />.</li>
+                        <li>Salin hasil (Result) dan kirim ke teman Anda.</li>
+                      </ol>
+                    </div>
+                    <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                      <strong className="text-gray-200 block mb-1">Menerima Pesan:</strong>
+                      <ol className="list-decimal pl-4 space-y-1 text-gray-400">
+                        <li>Minta <strong>Key</strong> dari pengirim.</li>
+                        <li>Tempel Key di kolom <strong>"Import Settings Key"</strong> dan klik <strong>"Load Key"</strong>.</li>
+                        <li>Tempel pesan terenkripsi di kolom <strong>"Message Translator"</strong> (Input).</li>
+                        <li>Klik tombol panah <ArrowRight size={12} className="inline" /> untuk membaca pesan asli.</li>
+                      </ol>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="text-amber-500 font-bold mb-2 flex items-center gap-2">
+                    <span className="bg-amber-900/30 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
+                    Tips Tambahan
+                  </h3>
+                  <ul className="list-disc pl-9 space-y-1 text-gray-400">
+                    <li>Gunakan tombol <strong>"Reset Rotors"</strong> untuk mengembalikan posisi rotor ke awal sesi tanpa mengubah pengaturan kabel atau jenis rotor.</li>
+                    <li>Enigma bersifat <em>reciprocal</em>: Jika A menjadi X, maka X akan menjadi A (dengan pengaturan yang sama).</li>
+                  </ul>
+                </section>
+              </div>
+              
+              <div className="p-6 border-t border-white/10 bg-black/20 flex justify-end">
+                <button 
+                  onClick={() => setIsHelpOpen(false)}
+                  className="bg-white text-black px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
