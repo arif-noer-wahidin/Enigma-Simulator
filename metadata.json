@@ -1,0 +1,5 @@
+{
+  "name": "Enigma Simulator",
+  "description": "A fully functional Enigma machine simulator with configurable rotors, plugboard, and realistic encryption logic.",
+  "requestFramePermissions": []
+}

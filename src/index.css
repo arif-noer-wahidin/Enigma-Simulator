@@ -1,0 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-typewriter: "Special Elite", monospace;
+}
